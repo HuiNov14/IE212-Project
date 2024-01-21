@@ -28,6 +28,7 @@ header {
 button {
     padding: 17px;
     margin-bottom: 20px;
+    right: 30;
     background-color: #00586c;
     color: white;
     border: none;
@@ -42,7 +43,7 @@ button:hover {
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    margin-top: 0px;
 }
 
 th, td {
@@ -56,6 +57,6 @@ th {
     color: white;
 }
 #runModelBtn {
-    margin-left: 8%;
+    margin-left: 90%;
     margin-top: 20px;
 }

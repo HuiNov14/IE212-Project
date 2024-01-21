@@ -26,14 +26,38 @@ function clearTable(tableBody) {
 
 function populateTable(tableBody, results) {
     for (var i = 0; i < results.length; i++) {
+        var labels = results[i].labels;
+
         var newRow = tableBody.insertRow();
         var cell1 = newRow.insertCell(0);
         var cell2 = newRow.insertCell(1);
         var cell3 = newRow.insertCell(2);
+
         cell1.textContent = i + 1;
         cell2.textContent = results[i].text;
-        cell3.textContent = results[i].labels.map(label => label[2]).join(', ');
+
+        for (var j = 0; j < labels.length; j++) {
+            var labelValue = labels[j][2];
+            var labelColor = getLabelColor(labelValue);
+
+            var labelRow = cell3.appendChild(document.createElement("div"));
+            labelRow.textContent = labelValue.split("#")[0]; 
+
+            labelRow.style.color = labelColor;
+        }
     }
+}
+
+function getLabelColor(labelValue) {
+    var color;
+    if (labelValue.includes("#POSITIVE")) {
+        color = "green";
+    } else if (labelValue.includes("#NEGATIVE")) {
+        color = "red";
+    } else {
+        color = "black";
+    }
+    return color;
 }
 
 document.getElementById('runModelBtn').addEventListener('click', callPredictAPI);
