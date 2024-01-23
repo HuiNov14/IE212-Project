@@ -5,13 +5,13 @@ function callPredictAPI() {
             'Content-Type': 'application/json',
         },
     })
-    .then(response => response.json())
-    .then(data => {
-        updateTableWithResults(data);
-    })
-    .catch(error => {
-        console.error('Error fetching data:', error);
-    });
+        .then(response => response.json())
+        .then(data => {
+            updateTableWithResults(data);
+        })
+        .catch(error => {
+            console.error('Error fetching data:', error);
+        });
 }
 
 function updateTableWithResults(results) {
@@ -21,19 +21,21 @@ function updateTableWithResults(results) {
 }
 
 function clearTable(tableBody) {
-    tableBody.innerHTML = ''; 
+    tableBody.innerHTML = '';
 }
 
 function populateTable(tableBody, results) {
     for (var i = 0; i < results.length; i++) {
         var labels = results[i].labels;
         var text = results[i].text;
+        var sentiment = results[i].sentiment;
 
         var newRow = tableBody.insertRow();
         var cell1 = newRow.insertCell(0);
         var cell2 = newRow.insertCell(1);
         var cell3 = newRow.insertCell(2);
         var cell4 = newRow.insertCell(3);
+        var cell5 = newRow.insertCell(4);
 
         cell1.textContent = i + 1;
 
@@ -41,7 +43,6 @@ function populateTable(tableBody, results) {
         var coloredText = getColoredText(text, labels);
         cell2.innerHTML = coloredText;
 
-        // Tạo các hàng nhỏ trong cột Labels
         for (var j = 0; j < labels.length; j++) {
             var labelValue = labels[j][2];
             var labelColor = getTextColor(labelValue);
@@ -51,7 +52,7 @@ function populateTable(tableBody, results) {
 
             labelRow.style.color = labelColor;
         }
-
+        
         // Tạo các hàng nhỏ trong cột Labels
         for (var j = 0; j < labels.length; j++) {
             var labelValue = labels[j][2];
@@ -62,6 +63,11 @@ function populateTable(tableBody, results) {
 
             labelRow.style.color = labelColor;
         }
+
+        labelRow = cell5.appendChild(document.createElement("div"));
+        labelRow.textContent = sentiment;
+        labelColor = getLabelColor(sentiment);
+        labelRow.style.color = labelColor;
     }
 }
 
@@ -83,7 +89,8 @@ function getColoredText(text, labels) {
         coloredText += text.substring(lastIndex, labelStart);
 
         // Thêm nhãn với màu sắc
-        coloredText += `<span style="color:${labelColor}">${text.substring(labelStart, labelEnd)}</span>`;
+        coloredText += `<sub style="font-size: 0.7em; position: relative;top: -0.8em; color:${labelColor};">#${labelValue.split("#")[0]}</sub>
+        <span style="color:${labelColor}">${text.substring(labelStart, labelEnd)}</span>`;
 
         lastIndex = labelEnd;
     }
@@ -96,9 +103,9 @@ function getColoredText(text, labels) {
 
 function getLabelColor(labelValue) {
     var color;
-    if (labelValue.includes("#POSITIVE")) {
+    if (labelValue.includes("POS")) {
         color = "#3772ff";
-    } else if (labelValue.includes("#NEGATIVE")) {
+    } else if (labelValue.includes("NEG")) {
         color = "#ff5c8a";
     } else {
         color = "#827081";
@@ -132,4 +139,10 @@ function getTextColor(labelValue) {
     return color;
 }
 
-document.getElementById('runModelBtn').addEventListener('click', callPredictAPI);
+function startModelPrediction() {
+    setInterval(callPredictAPI, 1000);
+}
+
+window.onload = startModelPrediction;
+
+// document.getElementById('runModelBtn').addEventListener('click', callPredictAPI);
