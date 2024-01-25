@@ -45,12 +45,10 @@ function populateTable(tableBody, results) {
 
         for (var j = 0; j < labels.length; j++) {
             var labelValue = labels[j][2];
-            var labelColor = getTextColor(labelValue);
 
             var labelRow = cell3.appendChild(document.createElement("div"));
             labelRow.textContent = labelValue.split("#")[0];
 
-            labelRow.style.color = labelColor;
         }
         
         // Tạo các hàng nhỏ trong cột Labels
@@ -104,7 +102,7 @@ function getColoredText(text, labels) {
 function getLabelColor(labelValue) {
     var color;
     if (labelValue.includes("POS")) {
-        color = "#3772ff";
+        color = "#40916c";
     } else if (labelValue.includes("NEG")) {
         color = "#ff5c8a";
     } else {
@@ -118,23 +116,23 @@ function getTextColor(labelValue) {
     if (labelValue.includes("SCREEN")) {
         color = "#52b788";
     } else if (labelValue.includes("CAMERA")) {
-        color = "#1b4332";
+        color = "#0077b6";
     } else if (labelValue.includes("FEATURES")) {
-        color = "#74c69d";
+        color = "#5a189a";
     } else if (labelValue.includes("BATTERY")) {
         color = "#40916c";
     } else if (labelValue.includes("PERFORMANCE")) {
-        color = "#ffb600";
+        color = "#3772ff";
     } else if (labelValue.includes("STORAGE")) {
         color = "#ff9e00";
     } else if (labelValue.includes("DESIGN")) {
-        color = "#ff9100";
+        color = "#7c6a0a";
     } else if (labelValue.includes("PRICE")) {
         color = "#ff7900";
     } else if (labelValue.includes("GENERAL")) {
-        color = "#ff6000";
+        color = "#7f4f24";
     } else if (labelValue.includes("SER&ACC")) {
-        color = "#ff4800";
+        color = "#9d4edd";
     }
     return color;
 }
