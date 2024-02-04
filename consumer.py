@@ -3,38 +3,45 @@ findspark.init()
 
 import pyspark
 from pyspark.sql import SparkSession
-from time import sleep
-from pyspark import SparkContext, SparkConf
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+from pyspark.sql.functions import col, from_json
+import requests
 
 scala_version = '2.12'  # your scala version
-spark_version = '3.5.0' # your spark version
+spark_version = '3.2.3' # your spark version
 kafka_version = '2.5.0' # your kafka version
+spark_nlp_version = '5.2.3'
 
 packages = [
     f'org.apache.spark:spark-sql-kafka-0-10_{scala_version}:{spark_version}',
-    f'org.apache.kafka:kafka-clients:{kafka_version}' 
+    f'org.apache.kafka:kafka-clients:{kafka_version}',
+    f'com.johnsnowlabs.nlp:spark-nlp_2.12:{spark_nlp_version}'
 ]
 
 spark = SparkSession.builder \
-                    .master("local")\
                     .appName("kafka-shopee")\
-                    .config("spark.jars.packages", ",".join(packages))\
+                    .master("local[4]")\
+                    .config("spark.python.worker.reuse",True) \
                     .config("spark.executor.memory", "16g") \
                     .config("spark.driver.memory", "16g") \
-                    .config("spark.python.worker.reuse",True) \
+                    .config("spark.driver.maxResultSize", "0") \
+                    .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+                    .config("spark.kryoserializer.buffer.max", "2000M") \
+                    .config("spark.sql.adaptive.enabled", False) \
                     .config("spark.sql.execution.arrow.maxRecordsPerBatch", "16") \
+                    .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", True) \
+                    .config("spark.jars.packages", ",".join(packages))\
                     .getOrCreate()
 
-
-spark.conf.set("spark.sql.adaptive.enabled", "false")
-spark.conf.set("spark.sql.streaming.forceDeleteTempCheckpointLocation", "true")
+spark.sparkContext.setLogLevel("error")
 
 print(packages)
 
+from preprocess import udf_clean
+from pipeline import pipeline
+
 topic_name = 'ryhjlimi-shopee'
 kafka_server = 'dory-01.srvs.cloudkafka.com:9094'
-
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 
 streamRawDf = spark\
                 .readStream\
@@ -46,9 +53,10 @@ streamRawDf = spark\
                 .option("kafka.sasl.mechanism", "SCRAM-SHA-256")\
                 .option("kafka.sasl.jaas.config", "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"ryhjlimi\" password=\"LuUoqLhDxrLrFDGjJPDxoaW1i4lnKaOl\";")\
                 .option("failOnDataLoss", "false") \
+                .option("groupIdPrefix", "ryhjlimi-") \
+                .option('spark.default.parallelism', 1) \
+                .option('spark.sql.shuffle.partitions', 1) \
                 .load()
-
-from pyspark.sql.functions import col, udf, from_json
 
 # Define the JSON schema
 json_schema = StructType([
@@ -58,34 +66,28 @@ json_schema = StructType([
 ])
 
 streamDF = streamRawDf \
-    .selectExpr("CAST(value AS STRING)") \
+    .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)") \
     .select(from_json("value", json_schema).alias("data")) \
     .select("data.*")
 
-from preprocess import preprocess_ner, preprocess_sa
-from pyspark.sql.functions import udf
-
-sa = udf(preprocess_sa, StringType())
-ner = udf(preprocess_ner, StringType())
-
 cleanDF = streamDF\
-    .withColumn("sa_cmt", sa(col('comment')))\
-    .withColumn("ner_cmt", ner(col('comment')))\
+    .withColumn("text", udf_clean(col('comment')))\
 
-import requests
+resultDF = pipeline.fit(cleanDF).transform(cleanDF)
 
 # Define a function to send individual records to the localhost server
 def send_record_to_server(record):
-    url = "http://localhost:5000"
+    url = "http://127.0.0.1:5000/"
+
     response = requests.post(url, json=record.asDict())
 
-output_path = "D:/UIT/Visual-Dashboard-IE212-/preprocessed/data"
-checkpoint_location = "D:/UIT/Visual-Dashboard-IE212-/preprocessed/checkpoint"
+output_path         = "D:/UIT/BD/database/"
+checkpoint_location = "D:/UIT/BD/database/checkpoint/"
 
 stream_writer = (
-    cleanDF\
+    resultDF
     .writeStream 
-    .queryName("cleanComments") 
+    .queryName("predictComments") 
     .outputMode("append")
     .format("csv")
     .option("path", output_path) 
@@ -96,5 +98,5 @@ stream_writer = (
     .trigger(processingTime="10 seconds") 
 )
 
-query_hdfs = stream_writer.start()
-query_hdfs.awaitTermination()
+query = stream_writer.start()
+query.awaitTermination()

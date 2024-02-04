@@ -34,6 +34,7 @@ def delivery_callback(err, msg):
 import pandas as pd
 
 df = pd.read_csv('data/electric.csv', encoding = 'utf-8')
+df = df.sample(frac=1).reset_index(drop=True)
 
 for index, row in df.iterrows():
     try:
